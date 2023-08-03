@@ -3,24 +3,6 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import argparse # to parse arguments in the command line
 
-data = pd.read_csv('./datasets/train.csv')
-data = np.array(data)
-m, n = data.shape
-np.random.shuffle(data) # shuffle before splitting into dev and training sets
-
-data_dev = data[0:1000].T
-Y_dev = data_dev[0]
-X_dev = data_dev[1:n]
-X_dev = X_dev / 255.
-
-data_train = data[1000:m].T
-Y_train = data_train[0]
-X_train = data_train[1:n]
-X_train = X_train / 255.
-_,m_train = X_train.shape
-
-print("X_train shape: " + str(X_train.shape))
-
 def init_params(cell_L1, cell_L2):
     W1 = np.random.rand(cell_L1, 784) - 0.5
     b1 = np.random.rand(cell_L1, 1) - 0.5
@@ -80,14 +62,22 @@ def update_params(W1, b1, W2, b2, W3, b3, dW1, db1, dW2, db2, dW3, db3, alpha):
     return W1, b1, W2, b2, W3, b3
 
 def get_predictions(A3):
+    rounded_values = [np.round(x, 3)[0] for x in A3]
+    print(rounded_values)
     return np.argmax(A3, 0)
 
 def get_accuracy(predictions, Y):
     print(predictions, Y)
     return np.sum(predictions == Y) / Y.size
 
-def gradient_descent(X, Y, alpha, iterations):
-    W1, b1, W2, b2, W3, b3 = init_params(20, 20)
+def gradient_descent(X, Y, alpha, iterations, cell_L1, cell_L2, init_params: None or list):
+    if init_params is None:
+        W1, b1, W2, b2, W3, b3 = init_params(cell_L1, cell_L2)
+    else:
+        W1, b1, W2, b2, W3, b3 = init_params
+        
+    accuracy = 0
+    epochs = iterations
     for i in range(iterations):
         Z1, A1, Z2, A2, Z3, A3 = forward_prop(W1, b1, W2, b2, W3, b3, X)
         dW1, db1, dW2, db2, dW3, db3 = backward_prop(Z1, A1, Z2, A2, Z3, A3, W1, W2, W3, X, Y)
@@ -95,9 +85,10 @@ def gradient_descent(X, Y, alpha, iterations):
         if i % 10 == 0:
             print("Epochs: ", i)
             predictions = get_predictions(A3)
-            print("Accuracy: ", get_accuracy(predictions, Y))
+            accuracy = get_accuracy(predictions, Y)
+            print("Accuracy: ", accuracy)
             
-    save_model(W1, b1, W2, b2, W3, b3)
+    save_model(W1, b1, W2, b2, W3, b3, accuracy, epochs)
     return W1, b1, W2, b2, W3, b3
 
 def make_predictions(X, W1, b1, W2, b2, W3, b3):
@@ -105,7 +96,12 @@ def make_predictions(X, W1, b1, W2, b2, W3, b3):
     predictions = get_predictions(A3)
     return predictions
 
-def save_model(W1, b1, W2, b2, W3, b3):
+def save_model(W1, b1, W2, b2, W3, b3, accuracy, epochs):
+    write_file = open("./weights/model.txt", "w")
+    write_file.write(str(accuracy) + "\n")
+    write_file.write(str(epochs))
+    write_file.close()
+
     np.save("./weights/W1.npy", W1)
     np.save("./weights/b1.npy", b1)
     np.save("./weights/W2.npy", W2)
@@ -140,14 +136,37 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", help="train the model", action="store_true", default=True)
     parser.add_argument("--test", help="test the model", action="store_true", default=False)
+    parser.add_argument("--resume", help="resume training (must be used with --train flag)", action="store_true", default=False)
     
     args = parser.parse_args()
-
-    if args.train:
-        W1, b1, W2, b2, W3, b3 = gradient_descent(X_train, Y_train, 0.1, 1000)
     
+    data = pd.read_csv('./datasets/train.csv')
+    data = np.array(data)
+    m, n = data.shape
+    np.random.shuffle(data) # shuffle before splitting into dev and training sets
+
+    data_dev = data[0:1000].T
+    Y_dev = data_dev[0]
+    X_dev = data_dev[1:n]
+    X_dev = X_dev / 255.
+
+    data_train = data[1000:m].T
+    Y_train = data_train[0]
+    X_train = data_train[1:n]
+    X_train = X_train / 255.
+    _,m_train = X_train.shape
+
+    print("X_train shape: " + str(X_train.shape))
+
     if args.test:
         W1, b1, W2, b2, W3, b3 = load_model()
+    elif args.train:
+        if args.resume:
+            W1, b1, W2, b2, W3, b3 = load_model()
+            W1, b1, W2, b2, W3, b3 = gradient_descent(X_train, Y_train, 0.1, 1000, 64, 32, [W1, b1, W2, b2, W3, b3])
+        else:
+            W1, b1, W2, b2, W3, b3 = gradient_descent(X_train, Y_train, 0.1, 1000, 64, 32)
+    
         
-    for i in range(5):
+    for i in range(15):
         test_prediction(i, W1, b1, W2, b2, W3, b3)
