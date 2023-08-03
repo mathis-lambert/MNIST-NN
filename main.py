@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+import argparse # to parse arguments in the command line
 
 data = pd.read_csv('./datasets/train.csv')
 data = np.array(data)
@@ -20,12 +21,12 @@ _,m_train = X_train.shape
 
 print("X_train shape: " + str(X_train.shape))
 
-def init_params():
-    W1 = np.random.rand(10, 784) - 0.5
-    b1 = np.random.rand(10, 1) - 0.5
-    W2 = np.random.rand(20, 10) - 0.5  # Augmenter le nombre de neurones de 10 à 20 (par exemple)
-    b2 = np.random.rand(20, 1) - 0.5  # Assurez-vous d'avoir le même nombre de neurones pour b2
-    W3 = np.random.rand(10, 20) - 0.5
+def init_params(cell_L1, cell_L2):
+    W1 = np.random.rand(cell_L1, 784) - 0.5
+    b1 = np.random.rand(cell_L1, 1) - 0.5
+    W2 = np.random.rand(cell_L2, cell_L1) - 0.5  # Augmenter le nombre de neurones de 10 à 20 (par exemple)
+    b2 = np.random.rand(cell_L2, 1) - 0.5  # Assurez-vous d'avoir le même nombre de neurones pour b2
+    W3 = np.random.rand(10, cell_L2) - 0.5
     b3 = np.random.rand(10, 1) - 0.5
     return W1, b1, W2, b2, W3, b3
 
@@ -86,7 +87,7 @@ def get_accuracy(predictions, Y):
     return np.sum(predictions == Y) / Y.size
 
 def gradient_descent(X, Y, alpha, iterations):
-    W1, b1, W2, b2, W3, b3 = init_params()
+    W1, b1, W2, b2, W3, b3 = init_params(20, 20)
     for i in range(iterations):
         Z1, A1, Z2, A2, Z3, A3 = forward_prop(W1, b1, W2, b2, W3, b3, X)
         dW1, db1, dW2, db2, dW3, db3 = backward_prop(Z1, A1, Z2, A2, Z3, A3, W1, W2, W3, X, Y)
@@ -135,8 +136,18 @@ def test_prediction(index, W1, b1, W2, b2, W3, b3):
     
     
 if __name__ == "__main__":
-    # W1, b1, W2, b2, W3, b3 = gradient_descent(X_train, Y_train, 0.1, 1000)
-    W1, b1, W2, b2, W3, b3 = load_model()
+    ## load args
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--train", help="train the model", action="store_true", default=True)
+    parser.add_argument("--test", help="test the model", action="store_true", default=False)
+    
+    args = parser.parse_args()
+
+    if args.train:
+        W1, b1, W2, b2, W3, b3 = gradient_descent(X_train, Y_train, 0.1, 1000)
+    
+    if args.test:
+        W1, b1, W2, b2, W3, b3 = load_model()
         
     for i in range(5):
         test_prediction(i, W1, b1, W2, b2, W3, b3)
