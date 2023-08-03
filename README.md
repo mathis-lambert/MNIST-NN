@@ -13,8 +13,8 @@
     - Fonction d'activation : ReLU (Rectified Linear Unit).
 
 ### 4. Troisième Couche Cachée :
-Nombre de neurones : 10.
-Fonction d'activation : ReLU (Rectified Linear Unit).
+    - Nombre de neurones : 10.
+    - Fonction d'activation : ReLU (Rectified Linear Unit).
 
 ### 5. Couche de Sortie (Output Layer) :
     - Nombre de neurones : 10 (correspondant aux 10 classes pour la classification des chiffres de 0 à 9).
